@@ -1,47 +1,25 @@
-# === Global ===
+# === Global Ignored Files ===
 node_modules/
 .env
-.env.local
-.env.*.local
 .DS_Store
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+logs/
 
-# === Logs ===
-logs
-*.log
-debug.log
-
-# === OS files ===
-Thumbs.db
-*.swp
-
-# === Build ===
-dist/
-build/
-
-# === Auth Service ===
-auth-service/node_modules/
-auth-service/.env
-auth-service/logs/
-auth-service/coverage/
-
-# === User Profile Service ===
-user-profile-service/node_modules/
-user-profile-service/.env
-user-profile-service/logs/
-user-profile-service/coverage/
-
-# === React Client ===
+# === Client ===
 client/node_modules/
 client/.env
 client/build/
 
+# === Server Auth Service ===
+server/auth_service/node_modules
+server/auth_service/.env
 
-# === IDE files ===
+# === Server User Service ===
+server/user_service/node_modules
+server/user_service/.env
+
+# === IDE & System ===
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
+*.swp
+Thumbs.db
