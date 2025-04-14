@@ -197,8 +197,7 @@ export const loginWithGoogle = async (req,res) => {
     if (!user) {
         user = new User({
             email,
-            name,
-            googleId,
+            username : name,
             password: await bcrypt.hash(googleId, 10), 
         });
         await user.save();
@@ -206,25 +205,26 @@ export const loginWithGoogle = async (req,res) => {
 
     const { accessToken, refreshToken } = generateTokens(user._id);
 
-    // // Optionally prevent duplicate refresh tokens
-    // if (!user.refreshToken.includes(refreshToken)) {
-    //     user.refreshToken.push(refreshToken);
-    //     await user.save();
-    // }
 
+    if (!user.refreshTokens.includes(refreshToken)) {
+        user.refreshTokens.push(refreshToken);
+        await user.save();
+    }
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: true ,
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 
+    });
     return res.json(
         {
         message : "login successfull with google",
-        status : 200 ,
+        success : true ,
         data :{
-        accessToken,
-        refreshToken,
-        user: {
-            _id: user._id,
-            email: user.email,
-            name: user.name,
+            accessToken : accessToken,
+            user : user
         },
-    }})
+    })
 };
 
 
