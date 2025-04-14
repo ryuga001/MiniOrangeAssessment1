@@ -6,6 +6,8 @@ node_modules/
 logs/
 
 # === Client ===
+
+/client
 client/node_modules/
 client/.env
 client/build/
