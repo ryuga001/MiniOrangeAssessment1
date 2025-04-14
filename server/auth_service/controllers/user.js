@@ -66,22 +66,30 @@ export const login = async (req, res) => {
 };
 
 
-export const refreshAccessToken = async (refreshToken) => {
-    if (!refreshToken) {
-        throw new Error('Refresh token is required');
-    }
-
-    const user = await User.findOne({ refreshToken: refreshToken });
-    if (!user) {
-        throw new Error('Refresh token not valid');
-    }
-
+export const refreshAccessToken = async (req, res) => {
     try {
-        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
-        const accessToken = jwt.sign({ id: decoded.id }, ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
-        return accessToken;
-    } catch (err) {
-        throw new Error('Invalid refresh token');
+        const { refreshToken } = req.cookies;
+
+        if (!refreshToken) {
+            return res.status(400).json({ message: 'Refresh token is required', success: false });
+        }
+
+        const user = await User.findOne({ refreshTokens: refreshToken });
+        if (!user) {
+            return res.status(404).json({ message: 'Invalid refresh token', success: false });
+        }
+
+        try {
+            const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+            const accessToken = jwt.sign({ id: decoded.id }, ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
+            return res.json({ message: 'Access token refreshed', success: true, data: { accessToken } });
+        } catch (err) {
+            console.error('Token verification error:', err.message);
+            return res.status(401).json({ message: 'Invalid refresh token', success: false });
+        }
+    } catch (error) {
+        console.error('Refresh token error:', error.message);
+        return res.status(500).json({ message: 'Internal server error', success: false });
     }
 };
 
