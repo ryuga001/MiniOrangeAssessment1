@@ -1,0 +1,118 @@
+.auth-page {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f8f9fa;
+
+  .auth-container {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    overflow: hidden;
+
+    .auth-image {
+      flex: 1;
+      display: none;
+
+      @media (min-width: 768px) {
+        display: block;
+
+        img {
+          width: 100%;
+          height: 100vh;
+          object-fit: cover;
+        }
+      }
+    }
+
+    .auth-form {
+      flex: 1;
+      padding: 3rem;
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+
+      h2 {
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        color: #333;
+        text-align: center;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+
+        .form-group {
+          margin-bottom: 1.25rem;
+
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+          }
+
+          input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+
+            &:focus {
+              border-color: #007bff;
+              outline: none;
+            }
+          }
+        }
+
+        button {
+          padding: 0.75rem;
+          border: none;
+          border-radius: 8px;
+          background-color: #007bff;
+          color: #fff;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: background-color 0.2s;
+
+          &:hover {
+            background-color: #0056b3;
+          }
+
+          &:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+          }
+        }
+      }
+
+      .oauth-buttons {
+        margin: 1.5rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+
+        button {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
+      }
+
+      p {
+        text-align: center;
+        color: #555;
+
+        span {
+          color: #007bff;
+          cursor: pointer;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
