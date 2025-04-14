@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     },
     phoneno: {
         type: String,
-        
+        default : null
     },
     refreshTokens: {
         type: [String],

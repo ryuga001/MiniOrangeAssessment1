@@ -27,31 +27,42 @@ const validateEmailAndPassword = (email, password) => {
 };
 
 
-export const login = async (req,res) => {
-    const {email, password} = req.body
-    
-    validateEmailAndPassword(email, password);
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
-        throw new Error('User not found');
+        validateEmailAndPassword(email, password);
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found', success: false });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid credentials', success: false });
+        }
+
+        const { accessToken, refreshToken } = generateTokens(user._id);
+
+        await User.updateOne({ _id: user._id }, { $push: { refreshTokens: refreshToken } });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: true ,
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        return res.json({
+            message: "Login successfully",
+            success: true,
+            data: { accessToken}
+        });
+    } catch (error) {
+        console.error('Login error:', error.message);
+        return res.status(500).json({ message: 'Internal server error', success: false });
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-        throw new Error('Invalid credentials');
-    }
-
-    const { accessToken, refreshToken } = generateTokens(user._id);
-
-    
-    await User.updateOne({ _id: user._id }, { refreshToken: refreshToken  });
-
-    return res.json({
-        message : "Login successfully",
-        status : 200,
-        data : { accessToken, refreshToken }
-    })
 };
 
 
@@ -75,33 +86,78 @@ export const refreshAccessToken = async (refreshToken) => {
 };
 
 
-export const logout = async (refreshToken) => {
-    if (!refreshToken) {
-        throw new Error('Refresh token is required');
-    }
+export const logout = async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies ;
 
-    await User.updateOne({ refreshTokens: refreshToken }, { $pull: { refreshTokens: refreshToken } });
+        if (!refreshToken) {
+            return res.status(400).json({ message: 'Refresh token is required', success: false });
+        }
+
+        const user = await User.findOne({ refreshTokens: refreshToken });
+        if (!user) {
+            return res.status(404).json({ message: 'Invalid refresh token', success: false });
+        }
+
+        await User.updateOne({ _id: user._id }, { $pull: { refreshTokens: refreshToken } });
+
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+        });
+
+        return res.json({ message: 'Logout successful', success: true });
+    } catch (error) {
+        console.error('Logout error:', error.message);
+        return res.status(500).json({ message: 'Internal server error', success: false });
+    }
 };
 
 
-export const register = async (req,res) => {
-    const {username , email, password} = req.body
-    validateEmailAndPassword(email, password);
+export const register = async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        throw new Error('User already exists');
+        validateEmailAndPassword(email, password);
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({ message: 'User already exists', success: false });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, email, password: hashedPassword });
+
+        await newUser.save();
+
+        const { accessToken, refreshToken } = generateTokens(newUser._id);
+
+        await User.updateOne({ _id: newUser._id }, { $push: { refreshTokens: refreshToken } });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        return res.status(201).json({
+            message: 'User registered successfully',
+            success: true,
+            data: {
+                accessToken,
+                user: {
+                    _id: newUser._id,
+                    username: newUser.username,
+                    email: newUser.email,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Registration error:', error.message);
+        return res.status(500).json({ message: 'Internal server error', success: false });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, password: hashedPassword });
-
-    await newUser.save();
-
-    return res.json({ message: 'User registered successfully' ,
-        success : 200 ,
-        data : newUser
-    })
 };
 
 export const loginWithGoogle = async (req,res) => {
