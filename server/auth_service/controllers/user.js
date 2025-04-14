@@ -229,39 +229,61 @@ export const loginWithGoogle = async (req,res) => {
 
 
 
-export const loginWithFacebook = async (req,res) => {
-    const {accessToken} = req.body;
-    if (!accessToken) {
-        throw new Error('Facebook access token is required');
+export const loginWithFacebook = async (req, res) => {
+    const { facebookToken } = req.body;
+    if (!facebookToken) {
+        throw new Error('Facebook token is required');
     }
 
+    let facebookUser;
     try {
-        const fbRes = await fetch(
-            `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
-        );
-
-        if (!fbRes.ok) throw new Error('Invalid Facebook token');
-
-        const data = await fbRes.json();
-
-        const { email, name } = data;
-
-        let user = await User.findOne({ email });
-
-        if (!user) {
-            user = new User({
-                email,
-                name,
-                password: await bcrypt.hash('default_password', 10),
-            });
-            await user.save();
+        const response = await fetch(`https://graph.facebook.com/me?fields=id,name,email&access_token=${facebookToken}`);
+        if (!response.ok) {
+            throw new Error('Invalid Facebook token');
         }
-
-        const { accessToken: jwtAccess, refreshToken } = generateTokens(user._id);
-        await User.updateOne({ _id: user._id }, { $push: { refreshTokens: refreshToken } });
-
-        return res.json({ accessToken: jwtAccess, refreshToken });
+        facebookUser = await response.json();
     } catch (err) {
-        throw new Error('Facebook login failed');
+        console.error('Facebook token verification failed:', err.message);
+        throw new Error('Failed to verify Facebook token');
     }
+
+    const { id: facebookId, email, name } = facebookUser;
+
+    if (!email || !facebookId) {
+        throw new Error('Invalid token payload: missing email or ID');
+    }
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+        user = new User({
+            email,
+            username: name,
+            password: await bcrypt.hash(facebookId, 10), 
+        });
+        await user.save();
+    }
+
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    if (!user.refreshTokens.includes(refreshToken)) {
+        user.refreshTokens.push(refreshToken);
+        await user.save();
+    }
+
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+        message: 'Login successful with Facebook',
+        success: true,
+        data: {
+            accessToken: accessToken,
+            user: user,
+        },
+    });
 };
